@@ -90,7 +90,7 @@ function contaValidas(){
     let seq=[];
     for (const c of g) {
       if (seq.length===0||VALORES.indexOf(seq[seq.length-1].v)===VALORES.indexOf(c.v)-1) seq.push(c);
-      else { if (seq.length>=3 && validaConjunto(seq)) total+=seq.length; seq=[c]; }
+      else { if (seq.length>=3 && validaConjunto(seq)) total+=g.length; seq=[c]; }
     }
     if (seq.length>=3 && validaConjunto(seq)) total+=seq.length;
   }
