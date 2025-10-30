@@ -47,7 +47,13 @@ function descarta(idx) {
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
   socket.emit('descartarCarta', c);
 }
-function idxValor(v){return VALORES.indexOf(v);}
+function idxValor(v){
+  if (v==='A') return 1;
+  if (v==='J') return 11;
+  if (v==='Q') return 12;
+  if (v==='K') return 13;
+  return parseInt(v);
+}
 function mesmoNaipe(seq){return seq.every(c=>c.n===seq[0].n);}
 function sequenciaReal(seq){
   if(seq.length<3||!mesmoNaipe(seq))return false;
@@ -78,14 +84,19 @@ function validaConjunto(seq){
 }
 function contaValidas(){
   const cartas=mao.filter(c=>c);
-  if (cartas.length!==13) return 0; // tem de ter 13 cartas na mão
+  if (cartas.length!==13) return 0;
+
   let total=0;
+  const usadas=new Set(); // IDs já contadas
 
   // 1. TRIOS/QUADRAS (mesmo valor, naipes diferentes)
   const porValor={};
   for (const c of cartas) { const v=c.v; if (!porValor[v]) porValor[v]=[]; porValor[v].push(c); }
   for (const g of Object.values(porValor)) {
-    if ((g.length===3 || g.length===4) && validaConjunto(g)) total+=g.length;
+    if ((g.length===3 || g.length===4) && validaConjunto(g)) {
+      for (const c of g) usadas.add(c.id);
+      total+=g.length;
+    }
   }
 
   // 2. SEQUÊNCIAS (mesmo naipe, valores consecutivos)
@@ -95,10 +106,11 @@ function contaValidas(){
     g.sort((a,b)=>idxValor(a.v)-idxValor(b.v));
     let seq=[];
     for (const c of g) {
-      if (seq.length===0||VALORES.indexOf(seq[seq.length-1].v)===VALORES.indexOf(c.v)-1) seq.push(c);
-      else { if (seq.length>=3 && validaConjunto(seq)) total+=seq.length; seq=[c]; }
+      if (usadas.has(c.id)) continue; // já foi usada
+      if (seq.length===0||idxValor(seq[seq.length-1].v)===idxValor(c.v)-1) seq.push(c);
+      else { if (seq.length>=3 && validaConjunto(seq)) { for (const s of seq) usadas.add(s.id); total+=seq.length; } seq=[c]; }
     }
-    if (seq.length>=3 && validaConjunto(seq)) total+=seq.length;
+    if (seq.length>=3 && validaConjunto(seq)) { for (const s of seq) usadas.add(s.id); total+=seq.length; }
   }
   return total;
 }
