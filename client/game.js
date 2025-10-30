@@ -133,13 +133,9 @@ socket.on('cartaTirada', (carta) => {
 
 /* ---------- botão principal (FECHO com 12 válidas) ---------- */
 $('#btnPrincipal').onclick = () => {
-  if ($('#btnPrincipal').textContent === 'Dar Cartas') {
-    socket.emit('darCartas');
-  } else {
-    const validas = contaValidas();
-    if (validas < 12) return log(`Faltam cartas válidas: ${12 - validas}`);
-    log('🎉 VITÓRIA! Fecho aplicado (12 cartas válidas).');
-  }
+  const validas = contaValidas();
+  if (validas < 12) return log(`Faltam cartas válidas: ${12 - validas}`);
+  log('🎉 VITÓRIA! Fecho aplicado (12 cartas válidas).');
 };
 
 /* ---------- monte / descarte (LOOP 108 cartas) ---------- */
