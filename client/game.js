@@ -14,7 +14,6 @@ const log = msg => $('#log').innerHTML = msg;
 const corNaipe = n => (n === '♥' || n === '♦') ? 'vermelho' : 'preto';
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
 
-/* ---------- cria slots vazios ---------- */
 function criarSlots() {
   const h = $('#hand'); h.innerHTML = '';
   for (let i = 0; i < 13; i++) {
@@ -83,7 +82,7 @@ function validaConjunto(seq){
   return false;
 }
 function contaValidas(){
-  const cartas=mao.filter(c=>c);              // só conta cartas não-nulas
+  const cartas=mao.filter(c=>c);              // só cartas não-nulas
   if (cartas.length<12) return 0;             // precisas de 12 válidas
   let total=0;
   const usadas=new Set();                     // IDs já contadas
