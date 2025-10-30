@@ -4,8 +4,8 @@
   "description": "2 Set Card Game",
   "main": "server/server.js",
   "scripts": {
-    "start": "server/server.js",
-    "dev": "server/server.js"
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -14,3 +14,4 @@
   "engines": { "node": ">=16" }
 
 }
+
