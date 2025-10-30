@@ -1,9 +1,9 @@
-/* ---------- regras do jogo (exactamente como nos ficheiros iniciais) ---------- */
+/* ---------- baralho único: 108 cartas ---------- */
 const NAIPES = ['♠','♥','♦','♣'];
 const VALORES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const BARALHO = [];
 for (let b = 0; b < 2; b++) for (let n of NAIPES) for (let v of VALORES) BARALHO.push({n,v});
-for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
+for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});   // 4 Jokers
 
 let mao = [], idGlobal = 0;
 let deck = [], discardPile = [];
@@ -14,6 +14,7 @@ const log = msg => $('#log').innerHTML = msg;
 const corNaipe = n => (n === '♥' || n === '♦') ? 'vermelho' : 'preto';
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
 
+/* ---------- cria slots vazios ---------- */
 function criarSlots() {
   const h = $('#hand'); h.innerHTML = '';
   for (let i = 0; i < 13; i++) {
@@ -120,24 +121,23 @@ $('#btnPrincipal').onclick = () => {
   }
 };
 
-/* ---------- monte / descarte ---------- */
+/* ---------- monte / descarte (LOOP 108 cartas) ---------- */
 $('#stock').onclick = () => {
   const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
   if (deck.length === 0 && discardPile.length === 0) return log('Sem cartas');
   if (deck.length === 0) {
-    // reabastece e BARALHA
-    deck = discardPile.map(c => ({...c}));  // cópia profunda
+    // reabastece o monte com as cartas do descarte (baralhadas)
+    deck = discardPile.splice(0);   // esvazia o descarte para o monte
     shuffle(deck);
-    discardPile = [];
     log('Monte reabastecido.');
   }
-  const nova = deck.pop(); mao[vazio] = { ...nova, id: idGlobal++ }; descartando = false; renderMao();
+  const nova = deck.pop(); mao[vazio] = { ...nova }; descartando = false; renderMao();
 };
 
 $('#discard').onclick = () => {
   const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
   if (discardPile.length === 0) return log('Descarte vazio');
-  const c = discardPile.pop(); mao[vazio] = { ...c, id: idGlobal++ }; descartando = false; renderMao();
+  const c = discardPile.pop(); mao[vazio] = { ...c }; descartando = false; renderMao();
 };
 
 /* ---------- inicialização ---------- */
