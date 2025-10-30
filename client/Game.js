@@ -95,7 +95,7 @@ function contaValidas(){
 }
 
 /* ---------- ligação ao servidor ---------- */
-const socket = io("https://jokersden.onrender.com/");   // ⬅️ coloca aqui o teu url do Render
+const socket = io("https://jokersden.onrender.com");   // ⬅️ coloca aqui o teu url do Render
 
 socket.on("connect", () => log("Ligado ao servidor"));
 socket.on("message", msg => log(msg));
