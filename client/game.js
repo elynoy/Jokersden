@@ -83,11 +83,10 @@ function validaConjunto(seq){
   return false;
 }
 function contaValidas(){
-  const cartas=mao.filter(c=>c);
-  if (cartas.length!==13) return 0;
-
+  const cartas=mao.filter(c=>c);              // só conta cartas não-nulas
+  if (cartas.length<12) return 0;             // precisas de 12 válidas
   let total=0;
-  const usadas=new Set(); // IDs já contadas
+  const usadas=new Set();                     // IDs já contadas
 
   // 1. TRIOS/QUADRAS (mesmo valor, naipes diferentes)
   const porValor={};
