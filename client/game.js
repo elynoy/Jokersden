@@ -1,13 +1,14 @@
-/* ---------- baralho único: 108 cartas ---------- */
+/* ---------- baralho base: 108 cartas ---------- */
 const NAIPES = ['♠','♥','♦','♣'];
 const VALORES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const BARALHO = [];
 for (let b = 0; b < 2; b++) for (let n of NAIPES) for (let v of VALORES) BARALHO.push({n,v});
 for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
 
-let mao = [], idGlobal = 0;
+let mao = [];
 let deck = [], discardPile = [];
 let dragIdx = null, descartando = false;
+let idGlobal = 0; // ID único por carta tirada
 
 const $ = sel => document.querySelector(sel);
 const log = msg => $('#log').innerHTML = msg;
@@ -41,7 +42,7 @@ function descarta(idx) {
   if (descartando) return;
   const c = mao[idx]; if (!c) return;
   descartando = true;
-  discardPile.push({...c});           // cópia profunda
+  discardPile.push(c); // objeto com ID único
   mao[idx] = null; renderMao();
   $('#discard').innerHTML = `<span class="${corNaipe(c.n)}">${c.v} ${c.n}</span>`;
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
@@ -131,14 +132,14 @@ $('#stock').onclick = () => {
     shuffle(deck);
     log('Monte reabastecido.');
   }
-  const nova = deck.pop(); mao[vazio] = { ...nova }; descartando = false; renderMao();
+  const nova = deck.pop(); mao[vazio] = nova; descartando = false; renderMao();
   log(`Tiraste: ${nova.v} ${nova.n}`);
 };
 
 $('#discard').onclick = () => {
   const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
   if (discardPile.length === 0) return log('Descarte vazio');
-  const c = discardPile.pop(); mao[vazio] = { ...c }; descartando = false; renderMao();
+  const c = discardPile.pop(); mao[vazio] = c; descartando = false; renderMao();
 };
 
 /* ---------- inicialização ---------- */
