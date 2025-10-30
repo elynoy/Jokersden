@@ -1,4 +1,4 @@
-/* ---------- lógica do jogo (single-player) ---------- */
+/* ---------- regras do jogo (exactamente como nos ficheiros iniciais) ---------- */
 const NAIPES = ['♠','♥','♦','♣'];
 const VALORES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const BARALHO = [];
@@ -32,7 +32,7 @@ function renderMao() {
     const d = document.createElement('div');
     d.className = 'card' + (c.n === 'Joker' ? ' joker' : '');
     d.innerHTML = `<div class="val ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.v}</div><div class="naipe ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.n}</div>`;
-    d.draggable = true; d.ondragstart = e => dragIdx = idx; d.ondblclick = () => { if (!descartando) descarta(idx); };
+    d.draggable = true; d.ondragstart = e => dragIdx = idx; d.ondblclick = e => { if (!descartando) descarta(idx); };
     s.appendChild(d);
   });
 }
@@ -95,15 +95,41 @@ function contaValidas(){
 }
 
 /* ---------- ligação ao servidor ---------- */
-const socket = io("https://jokersden.onrender.com");   // ⬅️ coloca aqui o teu url do Render
+const socket = io("https://jokersden.onrender.com");   // ⬅️ o teu URL do Render
+socket.on('connect', () => log("Ligado ao servidor"));
+socket.on('message', msg => log(msg));
+socket.on('cartasDistribuidas', data => {
+  console.log('cartasDistribuidas', data);
+  mao = data;
+  renderMao();
+});
 
-socket.on("connect", () => log("Ligado ao servidor"));
-socket.on("message", msg => log(msg));
-socket.on("cartasDistribuidas", data => { mao = data; renderMao(); });
+/* ---------- botão principal (lógica original) ---------- */
+$('#btnPrincipal').onclick = () => {
+  if ($('#btnPrincipal').textContent === 'Dar Cartas') {
+    socket.emit('darCartas');          // pede ao servidor
+  } else {
+    // tenta fechar
+    const validas = contaValidas();
+    if (validas !== 12) return log(`Faltam cartas válidas: ${12 - validas}`);
+    const vazio = mao.findIndex(c => !c);
+    if (vazio === -1) return log('Mão cheia.');
+    log('🎉 VITÓRIA! Fecho aplicado (12 cartas válidas).');
+  }
+};
 
-/* ---------- eventos locais ---------- */
-$('#btnPrincipal').onclick = () => socket.emit("darCartas");
-$('#stock').onclick = () => { /* lógica single-player */ };
-$('#discard').onclick = () => { /* lógica single-player */ };
+/* ---------- restantes clicks (iguais) ---------- */
+$('#stock').onclick = () => {
+  const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
+  if (deck.length === 0 && discardPile.length === 0) return log('Sem cartas');
+  if (deck.length === 0) { deck = [...discardPile]; shuffle(deck); discardPile = []; log('Monte reabastecido.'); }
+  const nova = deck.pop(); mao[vazio] = { ...nova, id: idGlobal++ }; descartando = false; renderMao();
+};
+$('#discard').onclick = () => {
+  const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
+  if (discardPile.length === 0) return log('Descarte vazio');
+  const c = discardPile.pop(); mao[vazio] = { ...c, id: idGlobal++ }; descartando = false; renderMao();
+};
 
+/* ---------- inicialização ---------- */
 criarSlots();
