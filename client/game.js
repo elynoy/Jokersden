@@ -5,7 +5,7 @@ const BARALHO = [];
 for (let b = 0; b < 2; b++) for (let n of NAIPES) for (let v of VALORES) BARALHO.push({n,v});
 for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
 
-let mao = [];                // 13 slots
+let mao = [];
 let discardPile = [];
 let dragIdx = null, descartando = false;
 
@@ -18,34 +18,30 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.fl
 /* ---------- desenha 13 slots vazios ---------- */
 function criarSlots() {
   const h = $('#hand');
-  if (!h) return;                       // seguro
+  if (!h) return;
   h.innerHTML = '';
   for (let i = 0; i < 13; i++) {
     const s = document.createElement('div');
-    s.className = 'slot';
-    s.dataset.idx = i;
+    s.className = 'slot'; s.dataset.idx = i;
     s.ondragover = e => e.preventDefault();
-    s.ondrop = e => {
-      const to = Number(s.dataset.idx);
-      [mao[dragIdx], mao[to]] = [mao[to], mao[dragIdx]];
-      renderMao();
-    };
+    s.ondrop = e => { const to = Number(s.dataset.idx); [mao[dragIdx], mao[to]] = [mao[to], mao[dragIdx]]; renderMao(); };
     h.appendChild(s);
   }
 }
 
 /* ---------- renderiza a mão ---------- */
 function renderMao() {
+  console.log('[renderMao] mao:', mao);                // TESTE
+  console.log('[renderMao] slots encontrados:', document.querySelectorAll('#hand .slot').length);
   const slots = document.querySelectorAll('#hand .slot');
   slots.forEach((slot, idx) => {
     slot.innerHTML = '';
     const c = mao[idx];
-    if (!c) return;                       // slot vazio
+    if (!c) return;
     const d = document.createElement('div');
     d.className = 'card' + (c.n === 'Joker' ? ' joker' : '');
-    d.innerHTML = `
-      <div class="val ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.v}</div>
-      <div class="naipe ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.n}</div>`;
+    d.innerHTML = `<div class="val ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.v}</div>
+                   <div class="naipe ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.n}</div>`;
     d.draggable = true;
     d.ondragstart = () => dragIdx = idx;
     d.ondblclick = () => { if (!descartando) descarta(idx); };
@@ -56,12 +52,10 @@ function renderMao() {
 /* ---------- descarte ---------- */
 function descarta(idx) {
   if (descartando) return;
-  const c = mao[idx];
-  if (!c) return;
+  const c = mao[idx]; if (!c) return;
   descartando = true;
   discardPile.push(c);
-  mao[idx] = null;
-  renderMao();
+  mao[idx] = null; renderMao();
   $('#discard').innerHTML = `<span class="${corNaipe(c.n)}">${c.v} ${c.n}</span>`;
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
   socket.emit('descartarCarta', c);
@@ -138,16 +132,16 @@ socket.on('connect', () => log("Ligado ao servidor"));
 
 socket.on('message', msg => log(msg));
 
-/* ----------  FIX-1: recebe as 13 cartas  ---------- */
+/* ---------- recebe as 13 cartas iniciais ---------- */
 socket.on('cartasDistribuidas', payload => {
   console.log('[SOCKET] cartasDistribuidas', payload);
-  mao = payload;                 // garante que é array com 13 objs
-  renderMao();                   // desenha imediatamente
+  mao = payload;
+  renderMao();
   $('#btnPrincipal').textContent = 'Fechar';
   log('13 cartas. Duplo clique numa carta para descartar ou clique em "Fechar" para terminar (12 válidas obrigatórias).');
 });
 
-/* ----------  FIX-2: compra carta do monte/descarte  ---------- */
+/* ---------- compra carta do monte ---------- */
 socket.on('cartaTirada', carta => {
   const vazio = mao.findIndex(c => !c);
   if (vazio === -1) return log('Mão cheia');
@@ -157,13 +151,13 @@ socket.on('cartaTirada', carta => {
   log(`Tiraste: ${carta.v} ${carta.n}`);
 });
 
-/* ----------  FIX-3: pedido inicial (botão DAR CARTAS)  ---------- */
+/* ---------- botão DAR CARTAS ---------- */
 $('#btnDar').onclick = () => {
   console.log('[UI] clicou Dar cartas');
-  socket.emit('pedirCartasIniciais');   // mesmo nome que o servidor espera
+  socket.emit('pedirCartasIniciais');
 };
 
-/* ---------- fecho (vitória) ---------- */
+/* ---------- fecho ---------- */
 $('#btnPrincipal').onclick = () => {
   const validas = contaValidas();
   if (validas < 12) return log(`Faltam cartas válidas: ${12 - validas}`);
@@ -187,8 +181,8 @@ $('#discard').onclick = () => {
   renderMao();
 };
 
-/* ----------  FIX-4: inicialização só depois do DOM  ---------- */
+/* ---------- inicialização ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   criarSlots();
-  renderMao();   // primeira render (mão ainda vazia)
+  renderMao();
 });
