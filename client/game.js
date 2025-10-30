@@ -40,7 +40,8 @@ function descarta(idx) {
   if (descartando) return;
   const c = mao[idx]; if (!c) return;
   descartando = true;
-  discardPile.push({...c}); mao[idx] = null; renderMao();
+  discardPile.push({...c});           // cópia profunda
+  mao[idx] = null; renderMao();
   $('#discard').innerHTML = `<span class="${corNaipe(c.n)}">${c.v} ${c.n}</span>`;
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
 }
@@ -102,12 +103,11 @@ socket.on('cartasDistribuidas', data => {
   console.log('cartasDistribuidas', data);
   mao = data;
   renderMao();
-  // ⬇️ GARANTE que o botão muda para "Fechar"
   $('#btnPrincipal').textContent = 'Fechar';
   log('13 cartas. Duplo clique numa carta para descartar ou clique em "Fechar" para terminar (12 válidas obrigatórias).');
 });
 
-/* ---------- botão principal (lógica original) ---------- */
+/* ---------- botão principal ---------- */
 $('#btnPrincipal').onclick = () => {
   if ($('#btnPrincipal').textContent === 'Dar Cartas') {
     socket.emit('darCartas');
@@ -120,13 +120,20 @@ $('#btnPrincipal').onclick = () => {
   }
 };
 
-/* ---------- restantes clicks ---------- */
+/* ---------- monte / descarte ---------- */
 $('#stock').onclick = () => {
   const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
   if (deck.length === 0 && discardPile.length === 0) return log('Sem cartas');
-  if (deck.length === 0) { deck = [...discardPile]; shuffle(deck); discardPile = []; log('Monte reabastecido.'); }
+  if (deck.length === 0) {
+    // reabastece e BARALHA
+    deck = discardPile.map(c => ({...c}));  // cópia profunda
+    shuffle(deck);
+    discardPile = [];
+    log('Monte reabastecido.');
+  }
   const nova = deck.pop(); mao[vazio] = { ...nova, id: idGlobal++ }; descartando = false; renderMao();
 };
+
 $('#discard').onclick = () => {
   const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
   if (discardPile.length === 0) return log('Descarte vazio');
