@@ -5,8 +5,8 @@ const BARALHO = [];
 for (let b = 0; b < 2; b++) for (let n of NAIPES) for (let v of VALORES) BARALHO.push({n,v});
 for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
 
-let mao = [];                // 13 slots
-let deck = [...BARALHO];     // cópia para embaralhar localmente (fallback)
+let mao = [];
+let deck = [...BARALHO];
 let discardPile = [];
 let dragIdx = null, descartando = false;
 
@@ -15,10 +15,8 @@ const log = msg => $('#log').innerHTML = msg;
 const corNaipe = n => (n === '♥' || n === '♦') ? 'vermelho' : 'preto';
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
 
-/* ---------- cria 13 slots vazios ---------- */
 function criarSlots() {
-  const h = $('#hand');
-  if (!h) return;
+  const h = $('#hand'); if (!h) return;
   h.innerHTML = '';
   for (let i = 0; i < 13; i++) {
     const s = document.createElement('div');
@@ -28,8 +26,6 @@ function criarSlots() {
     h.appendChild(s);
   }
 }
-
-/* ---------- renderiza a mão ---------- */
 function renderMao() {
   const slots = document.querySelectorAll('#hand .slot');
   slots.forEach((s, idx) => {
@@ -37,27 +33,19 @@ function renderMao() {
     const c = mao[idx]; if (!c) return;
     const d = document.createElement('div');
     d.className = 'card' + (c.n === 'Joker' ? ' joker' : '');
-    d.innerHTML = `<div class="val ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.v}</div>
-                   <div class="naipe ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.n}</div>`;
-    d.draggable = true; d.ondragstart = () => dragIdx = idx;
-    d.ondblclick = () => { if (!descartando) descarta(idx); };
+    d.innerHTML = `<div class="val ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.v}</div><div class="naipe ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.n}</div>`;
+    d.draggable = true; d.ondragstart = () => dragIdx = idx; d.ondblclick = () => { if (!descartando) descarta(idx); };
     s.appendChild(d);
   });
 }
-
-/* ---------- descarte local ---------- */
 function descarta(idx) {
   if (descartando) return;
   const c = mao[idx]; if (!c) return;
   descartando = true;
-  discardPile.push({...c});
-  mao[idx] = null;
-  renderMao();
+  discardPile.push({...c}); mao[idx] = null; renderMao();
   $('#discard').innerHTML = `<span class="${corNaipe(c.n)}">${c.v} ${c.n}</span>`;
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
 }
-
-/* ---------- validações (rummy) ---------- */
 function idxValor(v){return VALORES.indexOf(v);}
 function mesmoNaipe(seq){return seq.every(c=>c.n===seq[0].n);}
 function sequenciaReal(seq){
@@ -109,11 +97,10 @@ function contaValidas(){
 }
 
 /* ---------- socket ---------- */
-const socket = io("https://jokersden.onrender.com");   // ⬅️ coloca o teu url do Render aqui
+const socket = io("https://SUBSTITUIR.onrender.com");   // ⬅️ URL do teu servidor Render
 
 socket.on('connect', () => log("Ligado ao servidor"));
 socket.on('message', msg => log(msg));
-
 socket.on('cartasDistribuidas', payload => {
   console.log('[SOCKET] cartasDistribuidas', payload);
   mao = payload;
@@ -122,41 +109,39 @@ socket.on('cartasDistribuidas', payload => {
   log('13 cartas. Duplo clique numa carta para descartar ou clique em "Fechar" para terminar (12 válidas obrigatórias).');
 });
 
-/* ---------- botão principal (Dar Cartas / Fechar) ---------- */
-$('#btnPrincipal').onclick = () => {
-  if (mao.length === 0) {                  // primeira vez -> pedir cartas
-    socket.emit('darCartas');
-  } else {                                 // já tem cartas -> tentar fecho
-    const validas = contaValidas();
-    if (validas < 12) return log(`Faltam cartas válidas: ${12 - validas}`);
-    log('🎉 VITÓRIA! Fecho aplicado (12 cartas válidas).');
-  }
-};
-
-/* ---------- monte / descarte (single-player fallback) ---------- */
-$('#stock').onclick = () => {
-  const vazio = mao.findIndex(c => !c);
-  if (vazio === -1) return log('Mão cheia');
-  if (deck.length === 0) { shuffle(deck); log('Baralho re-embaralhado'); }
-  const c = deck.pop();
-  mao[vazio] = c;
-  descartando = false;
-  renderMao();
-  log(`Tiraste: ${c.v} ${c.n}`);
-};
-
-$('#discard').onclick = () => {
-  const vazio = mao.findIndex(c => !c);
-  if (vazio === -1) return log('Mão cheia');
-  if (discardPile.length === 0) return log('Descarte vazio');
-  const c = discardPile.pop();
-  mao[vazio] = c;
-  descartando = false;
-  renderMao();
-};
-
-/* ---------- inicialização ---------- */
+/* ---------- ligação do botão (só após DOM) ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   criarSlots();
   renderMao();
+
+  $('#btnPrincipal').onclick = () => {
+    if (mao.length === 0) {                       // primeira vez -> pedir cartas
+      socket.emit('darCartas');
+    } else {                                      // fechar com 12 válidas
+      const validas = contaValidas();
+      if (validas < 12) return log(`Faltam cartas válidas: ${12 - validas}`);
+      log('🎉 VITÓRIA! Fecho aplicado (12 cartas válidas).');
+    }
+  };
+
+  $('#stock').onclick = () => {
+    const vazio = mao.findIndex(c => !c);
+    if (vazio === -1) return log('Mão cheia');
+    if (deck.length === 0) { shuffle(deck); log('Baralho re-embaralhado'); }
+    const c = deck.pop();
+    mao[vazio] = c;
+    descartando = false;
+    renderMao();
+    log(`Tiraste: ${c.v} ${c.n}`);
+  };
+
+  $('#discard').onclick = () => {
+    const vazio = mao.findIndex(c => !c);
+    if (vazio === -1) return log('Mão cheia');
+    if (discardPile.length === 0) return log('Descarte vazio');
+    const c = discardPile.pop();
+    mao[vazio] = c;
+    descartando = false;
+    renderMao();
+  };
 });
