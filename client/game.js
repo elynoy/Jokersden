@@ -95,21 +95,23 @@ function contaValidas(){
 }
 
 /* ---------- ligação ao servidor ---------- */
-const socket = io("https://jokersden.onrender.com");   // ⬅️ o teu URL do Render
+const socket = io("https://jokersden.onrender.com");
 socket.on('connect', () => log("Ligado ao servidor"));
 socket.on('message', msg => log(msg));
 socket.on('cartasDistribuidas', data => {
   console.log('cartasDistribuidas', data);
   mao = data;
   renderMao();
+  // ⬇️ GARANTE que o botão muda para "Fechar"
+  $('#btnPrincipal').textContent = 'Fechar';
+  log('13 cartas. Duplo clique numa carta para descartar ou clique em "Fechar" para terminar (12 válidas obrigatórias).');
 });
 
 /* ---------- botão principal (lógica original) ---------- */
 $('#btnPrincipal').onclick = () => {
   if ($('#btnPrincipal').textContent === 'Dar Cartas') {
-    socket.emit('darCartas');          // pede ao servidor
+    socket.emit('darCartas');
   } else {
-    // tenta fechar
     const validas = contaValidas();
     if (validas !== 12) return log(`Faltam cartas válidas: ${12 - validas}`);
     const vazio = mao.findIndex(c => !c);
@@ -118,7 +120,7 @@ $('#btnPrincipal').onclick = () => {
   }
 };
 
-/* ---------- restantes clicks (iguais) ---------- */
+/* ---------- restantes clicks ---------- */
 $('#stock').onclick = () => {
   const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
   if (deck.length === 0 && discardPile.length === 0) return log('Sem cartas');
