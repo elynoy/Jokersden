@@ -44,21 +44,21 @@ io.on('connection', socket => {
     socket.emit('cartasDistribuidas', mao);
   });
 
-  socket.on('tirarCarta', () => {
-    if (monte.length === 0 && descarte.length === 0) {
-      socket.emit('message', 'Sem cartas');
-      return;
-    }
-    if (monte.length === 0) {
-      // reabastece o monte com as cartas do descarte (baralhadas)
-      monte = descarte.splice(0);
-      shuffle(monte);
-      socket.emit('message', 'Monte reabastecido.');
-    }
-    const carta = monte.pop();
-    socket.emit('cartaTirada', carta);
-    console.log('Carta tirada:', carta);
-  });
+ socket.on('tirarCarta', () => {
+  if (monte.length === 0 && descarte.length === 0) {
+    socket.emit('message', 'Sem cartas');
+    return;
+  }
+  if (monte.length === 0) {
+    // reabastece o monte com as cartas do descarte (baralhadas)
+    monte = descarte.splice(0);
+    shuffle(monte);
+    socket.emit('message', 'Monte reabastecido.');
+  }
+  const carta = monte.pop();
+  socket.emit('cartaTirada', carta);
+  console.log('Carta tirada:', carta);
+});
 
   socket.on('descartarCarta', (carta) => {
     descarte.push(carta);
@@ -68,4 +68,5 @@ io.on('connection', socket => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Servidor a rodar na porta ${PORT}`));
+
 
