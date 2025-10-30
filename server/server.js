@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// serve o cliente estático (só para testes locais; em produto o Vercel serve)
+// só serve os estáticos para testes locais; em produto o Vercel serve
 app.use(express.static(path.join(__dirname, '../client')));
 
 io.on('connection', socket => {
@@ -15,7 +15,8 @@ io.on('connection', socket => {
   socket.emit('message', 'Bem-vindo ao Triple Run!');
 
   socket.on('darCartas', () => {
-    // exemplo: enviar 13 cartas aleatórias
+    console.log('darCartas recebido');
+    // gera 13 cartas aleatórias
     const NAIPES = ['♠','♥','♦','♣'];
     const VALORES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
     const BARALHO = [];
