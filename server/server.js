@@ -32,7 +32,7 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.fl
 
 io.on('connection', socket => {
   console.log('Jogador conectado:', socket.id);
-  socket.emit('message', 'Bem-vindo ao Triple Run!');
+  socket.emit('message', 'Bem-vindo ao Jokers Den');
 
   socket.on('darCartas', () => {
     console.log('darCartas recebido');
@@ -68,3 +68,4 @@ io.on('connection', socket => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Servidor a rodar na porta ${PORT}`));
+
