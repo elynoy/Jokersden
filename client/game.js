@@ -3,7 +3,7 @@ const NAIPES = ['♠','♥','♦','♣'];
 const VALORES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const BARALHO = [];
 for (let b = 0; b < 2; b++) for (let n of NAIPES) for (let v of VALORES) BARALHO.push({n,v});
-for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});   // 4 Jokers
+for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
 
 let mao = [], idGlobal = 0;
 let deck = [], discardPile = [];
@@ -127,11 +127,12 @@ $('#stock').onclick = () => {
   if (deck.length === 0 && discardPile.length === 0) return log('Sem cartas');
   if (deck.length === 0) {
     // reabastece o monte com as cartas do descarte (baralhadas)
-    deck = discardPile.splice(0);   // esvazia o descarte para o monte
+    deck = discardPile.splice(0);   // move TODAS as cartas do descarte para o monte
     shuffle(deck);
     log('Monte reabastecido.');
   }
   const nova = deck.pop(); mao[vazio] = { ...nova }; descartando = false; renderMao();
+  log(`Tiraste: ${nova.v} ${nova.n}`);
 };
 
 $('#discard').onclick = () => {
