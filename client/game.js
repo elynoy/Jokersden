@@ -6,7 +6,7 @@ for (let b = 0; b < 2; b++) for (let n of NAIPES) for (let v of VALORES) BARALHO
 for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
 
 let mao = [];
-let deck = [], discardPile = [];
+let discardPile = [];
 let dragIdx = null, descartando = false;
 
 const $ = sel => document.querySelector(sel);
@@ -45,6 +45,7 @@ function descarta(idx) {
   mao[idx] = null; renderMao();
   $('#discard').innerHTML = `<span class="${corNaipe(c.n)}">${c.v} ${c.n}</span>`;
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
+  socket.emit('descartarCarta', c);
 }
 function idxValor(v){return VALORES.indexOf(v);}
 function mesmoNaipe(seq){return seq.every(c=>c.n===seq[0].n);}
@@ -107,6 +108,12 @@ socket.on('cartasDistribuidas', data => {
   $('#btnPrincipal').textContent = 'Fechar';
   log('13 cartas. Duplo clique numa carta para descartar ou clique em "Fechar" para terminar (12 válidas obrigatórias).');
 });
+socket.on('cartaTirada', (carta) => {
+  const vazio = mao.findIndex(c => !c);
+  if (vazio === -1) return log('Mão cheia');
+  mao[vazio] = carta; descartando = false; renderMao();
+  log(`Tiraste: ${carta.v} ${carta.n}`);
+});
 
 /* ---------- botão principal ---------- */
 $('#btnPrincipal').onclick = () => {
@@ -124,15 +131,7 @@ $('#btnPrincipal').onclick = () => {
 /* ---------- monte / descarte (LOOP 108 cartas) ---------- */
 $('#stock').onclick = () => {
   const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
-  if (deck.length === 0 && discardPile.length === 0) return log('Sem cartas');
-  if (deck.length === 0) {
-    // reabastece o monte com as cartas do descarte (baralhadas)
-    deck = discardPile.splice(0);   // move TODAS as cartas do descarte para o monte
-    shuffle(deck);
-    log('Monte reabastecido.');
-  }
-  const nova = deck.pop(); mao[vazio] = nova; descartando = false; renderMao();
-  log(`Tiraste: ${nova.v} ${nova.n}`);
+  socket.emit('tirarCarta');
 };
 
 $('#discard').onclick = () => {
