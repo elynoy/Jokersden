@@ -41,7 +41,7 @@ function descarta(idx) {
   if (descartando) return;
   const c = mao[idx]; if (!c) return;
   descartando = true;
-  discardPile.push(c); // objeto com ID único
+  discardPile.push(c);
   mao[idx] = null; renderMao();
   $('#discard').innerHTML = `<span class="${corNaipe(c.n)}">${c.v} ${c.n}</span>`;
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
@@ -78,11 +78,17 @@ function validaConjunto(seq){
 }
 function contaValidas(){
   const cartas=mao.filter(c=>c);
-  if (cartas.length!==12) return 0;
+  if (cartas.length!==13) return 0; // tem de ter 13 cartas na mão
   let total=0;
+
+  // 1. TRIOS/QUADRAS (mesmo valor, naipes diferentes)
   const porValor={};
   for (const c of cartas) { const v=c.v; if (!porValor[v]) porValor[v]=[]; porValor[v].push(c); }
-  for (const g of Object.values(porValor)) if ((g.length===3 || g.length===4) && validaConjunto(g)) total+=g.length;
+  for (const g of Object.values(porValor)) {
+    if ((g.length===3 || g.length===4) && validaConjunto(g)) total+=g.length;
+  }
+
+  // 2. SEQUÊNCIAS (mesmo naipe, valores consecutivos)
   const porNaipe={};
   for (const c of cartas) { const n=c.n; if (!porNaipe[n]) porNaipe[n]=[]; porNaipe[n].push(c); }
   for (const g of Object.values(porNaipe)) {
@@ -90,7 +96,7 @@ function contaValidas(){
     let seq=[];
     for (const c of g) {
       if (seq.length===0||VALORES.indexOf(seq[seq.length-1].v)===VALORES.indexOf(c.v)-1) seq.push(c);
-      else { if (seq.length>=3 && validaConjunto(seq)) total+=g.length; seq=[c]; }
+      else { if (seq.length>=3 && validaConjunto(seq)) total+=seq.length; seq=[c]; }
     }
     if (seq.length>=3 && validaConjunto(seq)) total+=seq.length;
   }
@@ -115,15 +121,13 @@ socket.on('cartaTirada', (carta) => {
   log(`Tiraste: ${carta.v} ${carta.n}`);
 });
 
-/* ---------- botão principal ---------- */
+/* ---------- botão principal (FECHO com 12 válidas) ---------- */
 $('#btnPrincipal').onclick = () => {
   if ($('#btnPrincipal').textContent === 'Dar Cartas') {
     socket.emit('darCartas');
   } else {
     const validas = contaValidas();
-    if (validas !== 12) return log(`Faltam cartas válidas: ${12 - validas}`);
-    const vazio = mao.findIndex(c => !c);
-    if (vazio === -1) return log('Mão cheia.');
+    if (validas < 12) return log(`Faltam cartas válidas: ${12 - validas}`);
     log('🎉 VITÓRIA! Fecho aplicado (12 cartas válidas).');
   }
 };
