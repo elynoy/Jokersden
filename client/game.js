@@ -8,7 +8,6 @@ for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
 let mao = [];
 let deck = [], discardPile = [];
 let dragIdx = null, descartando = false;
-let idGlobal = 0; // ID único por carta tirada
 
 const $ = sel => document.querySelector(sel);
 const log = msg => $('#log').innerHTML = msg;
