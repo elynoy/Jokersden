@@ -5,47 +5,69 @@ const BARALHO = [];
 for (let b = 0; b < 2; b++) for (let n of NAIPES) for (let v of VALORES) BARALHO.push({n,v});
 for (let j = 0; j < 4; j++) BARALHO.push({n:'Joker',v:'JOKER'});
 
-let mao = [];
+let mao = [];                // 13 slots
 let discardPile = [];
 let dragIdx = null, descartando = false;
 
+/* ---------- helpers ---------- */
 const $ = sel => document.querySelector(sel);
 const log = msg => $('#log').innerHTML = msg;
 const corNaipe = n => (n === '♥' || n === '♦') ? 'vermelho' : 'preto';
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } }
 
+/* ---------- desenha 13 slots vazios ---------- */
 function criarSlots() {
-  const h = $('#hand'); h.innerHTML = '';
+  const h = $('#hand');
+  if (!h) return;                       // seguro
+  h.innerHTML = '';
   for (let i = 0; i < 13; i++) {
     const s = document.createElement('div');
-    s.className = 'slot'; s.dataset.idx = i;
+    s.className = 'slot';
+    s.dataset.idx = i;
     s.ondragover = e => e.preventDefault();
-    s.ondrop = e => { const to = Number(s.dataset.idx); [mao[dragIdx], mao[to]] = [mao[to], mao[dragIdx]]; renderMao(); };
+    s.ondrop = e => {
+      const to = Number(s.dataset.idx);
+      [mao[dragIdx], mao[to]] = [mao[to], mao[dragIdx]];
+      renderMao();
+    };
     h.appendChild(s);
   }
 }
+
+/* ---------- renderiza a mão ---------- */
 function renderMao() {
   const slots = document.querySelectorAll('#hand .slot');
-  slots.forEach((s, idx) => {
-    s.innerHTML = '';
-    const c = mao[idx]; if (!c) return;
+  slots.forEach((slot, idx) => {
+    slot.innerHTML = '';
+    const c = mao[idx];
+    if (!c) return;                       // slot vazio
     const d = document.createElement('div');
     d.className = 'card' + (c.n === 'Joker' ? ' joker' : '');
-    d.innerHTML = `<div class="val ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.v}</div><div class="naipe ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.n}</div>`;
-    d.draggable = true; d.ondragstart = e => dragIdx = idx; d.ondblclick = e => { if (!descartando) descarta(idx); };
-    s.appendChild(d);
+    d.innerHTML = `
+      <div class="val ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.v}</div>
+      <div class="naipe ${c.n === 'Joker' ? '' : corNaipe(c.n)}">${c.n}</div>`;
+    d.draggable = true;
+    d.ondragstart = () => dragIdx = idx;
+    d.ondblclick = () => { if (!descartando) descarta(idx); };
+    slot.appendChild(d);
   });
 }
+
+/* ---------- descarte ---------- */
 function descarta(idx) {
   if (descartando) return;
-  const c = mao[idx]; if (!c) return;
+  const c = mao[idx];
+  if (!c) return;
   descartando = true;
   discardPile.push(c);
-  mao[idx] = null; renderMao();
+  mao[idx] = null;
+  renderMao();
   $('#discard').innerHTML = `<span class="${corNaipe(c.n)}">${c.v} ${c.n}</span>`;
   log('Carta descartada. Clique no MONTE ou na carta do descarte para repor (1 por vez).');
   socket.emit('descartarCarta', c);
 }
+
+/* ---------- validações (rummy) ---------- */
 function idxValor(v){
   if (v==='A') return 1;
   if (v==='J') return 11;
@@ -82,12 +104,10 @@ function validaConjunto(seq){
   return false;
 }
 function contaValidas(){
-  const cartas=mao.filter(c=>c);              // só cartas não-nulas
-  if (cartas.length<12) return 0;             // precisas de 12 válidas
+  const cartas=mao.filter(c=>c);
+  if (cartas.length<12) return 0;
   let total=0;
-  const usadas=new Set();                     // IDs já contadas
-
-  // 1. TRIOS/QUADRAS (mesmo valor, naipes diferentes)
+  const usadas=new Set();
   const porValor={};
   for (const c of cartas) { const v=c.v; if (!porValor[v]) porValor[v]=[]; porValor[v].push(c); }
   for (const g of Object.values(porValor)) {
@@ -96,15 +116,13 @@ function contaValidas(){
       total+=g.length;
     }
   }
-
-  // 2. SEQUÊNCIAS (mesmo naipe, valores consecutivos)
   const porNaipe={};
   for (const c of cartas) { const n=c.n; if (!porNaipe[n]) porNaipe[n]=[]; porNaipe[n].push(c); }
   for (const g of Object.values(porNaipe)) {
     g.sort((a,b)=>idxValor(a.v)-idxValor(b.v));
     let seq=[];
     for (const c of g) {
-      if (usadas.has(c.id)) continue; // já foi usada
+      if (usadas.has(c.id)) continue;
       if (seq.length===0||idxValor(seq[seq.length-1].v)===idxValor(c.v)-1) seq.push(c);
       else { if (seq.length>=3 && validaConjunto(seq)) { for (const s of seq) usadas.add(s.id); total+=seq.length; } seq=[c]; }
     }
@@ -115,40 +133,62 @@ function contaValidas(){
 
 /* ---------- ligação ao servidor ---------- */
 const socket = io("https://jokersden.onrender.com");
+
 socket.on('connect', () => log("Ligado ao servidor"));
+
 socket.on('message', msg => log(msg));
-socket.on('cartasDistribuidas', data => {
-  console.log('cartasDistribuidas', data);
-  mao = data;
-  renderMao();
+
+/* ----------  FIX-1: recebe as 13 cartas  ---------- */
+socket.on('cartasDistribuidas', payload => {
+  console.log('[SOCKET] cartasDistribuidas', payload);
+  mao = payload;                 // garante que é array com 13 objs
+  renderMao();                   // desenha imediatamente
   $('#btnPrincipal').textContent = 'Fechar';
   log('13 cartas. Duplo clique numa carta para descartar ou clique em "Fechar" para terminar (12 válidas obrigatórias).');
 });
-socket.on('cartaTirada', (carta) => {
+
+/* ----------  FIX-2: compra carta do monte/descarte  ---------- */
+socket.on('cartaTirada', carta => {
   const vazio = mao.findIndex(c => !c);
   if (vazio === -1) return log('Mão cheia');
-  mao[vazio] = carta; descartando = false; renderMao();
+  mao[vazio] = carta;
+  descartando = false;
+  renderMao();
   log(`Tiraste: ${carta.v} ${carta.n}`);
 });
 
-/* ---------- botão principal (FECHO com 12 válidas) ---------- */
+/* ----------  FIX-3: pedido inicial (botão DAR CARTAS)  ---------- */
+$('#btnDar').onclick = () => {
+  console.log('[UI] clicou Dar cartas');
+  socket.emit('pedirCartasIniciais');   // mesmo nome que o servidor espera
+};
+
+/* ---------- fecho (vitória) ---------- */
 $('#btnPrincipal').onclick = () => {
   const validas = contaValidas();
   if (validas < 12) return log(`Faltam cartas válidas: ${12 - validas}`);
   log('🎉 VITÓRIA! Fecho aplicado (12 cartas válidas).');
 };
 
-/* ---------- monte / descarte (LOOP 108 cartas) ---------- */
+/* ---------- monte / descarte ---------- */
 $('#stock').onclick = () => {
-  const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
+  const vazio = mao.findIndex(c => !c);
+  if (vazio === -1) return log('Mão cheia');
   socket.emit('tirarCarta');
 };
 
 $('#discard').onclick = () => {
-  const vazio = mao.findIndex(c => !c); if (vazio === -1) return log('Mão cheia');
+  const vazio = mao.findIndex(c => !c);
+  if (vazio === -1) return log('Mão cheia');
   if (discardPile.length === 0) return log('Descarte vazio');
-  const c = discardPile.pop(); mao[vazio] = c; descartando = false; renderMao();
+  const c = discardPile.pop();
+  mao[vazio] = c;
+  descartando = false;
+  renderMao();
 };
 
-/* ---------- inicialização ---------- */
-criarSlots();
+/* ----------  FIX-4: inicialização só depois do DOM  ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  criarSlots();
+  renderMao();   // primeira render (mão ainda vazia)
+});
